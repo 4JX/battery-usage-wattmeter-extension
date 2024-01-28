@@ -13,8 +13,16 @@ const BAT2 = "/sys/class/power_supply/BAT2/";
 let BatteryInfo = null;
 function getBatteryIndicator(callback) {
     let system = panel.statusArea.quickSettings._system;
-    if (system && system._systemItem._powerToggle) {
-      callback(system._systemItem._powerToggle._proxy, system);
+    if (system) {
+      console.error("[watt] system exists");
+      console.error("[watt] system exists");
+      console.error("[watt] system exists");
+      if (system._systemItem._powerToggle) {
+      console.error("[watt] toggle exists");
+      console.error("[watt] toggle exists");
+      console.error("[watt] toggle exists");
+        callback(system._systemItem._powerToggle._proxy, system);
+      }
     }
 }
 
@@ -36,7 +44,7 @@ function readFileSafely(filePath, defaultValue) {
   try {
     return Shell.get_file_contents_utf8_sync(filePath);
   } catch (e) {
-    console.log(`Cannot read file ${filePath}: ${e}`);
+    console.log(`[watt] Cannot read file ${filePath}: ${e}`);
     return defaultValue;
   }
 }
@@ -52,11 +60,14 @@ let BatLabelIndicator = GObject.registerClass(
       this._settings = settings;
       let battery = this._settings.get_int("battery");
       BatteryInfo = getBatteryPath(battery);
+      console.error("[watt] spawn");
       this._spawn();
     }
 
     // Get power consumption in Watts
     _getPower() {
+      console.error("[watt] getPower");
+
       const path = BatteryInfo["path"];
       if (!BatteryInfo['isTP']) {
         const current_now = this._getValue(`${path}current_now`);
@@ -68,12 +79,16 @@ let BatLabelIndicator = GObject.registerClass(
 
     // Helper function to get the value from a sysfs file
     _getValue(path) {
+      console.error("[watt] getValue");
+
       const value = parseFloat(readFileSafely(path, -1));
       return value === -1 ? value : value / 1000000;
     }
 
     // Determine battery status and power
     _getBatteryStatus() {
+      console.error("[watt] getBattStatus");
+
       const status = readFileSafely(BatteryInfo["path"] + "status", "Unknown");
 
       if (status.includes('Full')) {
@@ -88,12 +103,16 @@ let BatLabelIndicator = GObject.registerClass(
 
     // Convert power to string with appropriate formatting
     _meas() {
+      console.error("[watt] meas");
+
       const power = this._getPower();
       return power < 0 ? 0 : String(Math.round(power)).padStart(2, '0');
     }
 
     // Update the indicator label
     _sync() {
+      console.error("[watt] sync");
+
       if (BatteryInfo["path"] !== -1) {
         this.text = this._getBatteryStatus();
       } else {
@@ -105,6 +124,8 @@ let BatLabelIndicator = GObject.registerClass(
 
     // Start the update loop
     _spawn() {
+      console.error("[watt] spawn");
+
       this._biForceSync = GLib.timeout_add(
         GLib.PRIORITY_DEFAULT,
         this._settings.get_int("interval") * 1000,
@@ -114,6 +135,8 @@ let BatLabelIndicator = GObject.registerClass(
 
     // Stop the update loop
     _stop() {
+      console.error("[watt] stop");
+
       GLib.source_remove(this._biForceSync);
     }
   }
@@ -122,12 +145,17 @@ let BatLabelIndicator = GObject.registerClass(
 // Main extension class
 export default class WattmeterExtension extends Extension {
   enable() {
+    console.error("[watt] enable");
+
     this._settings = this.getSettings('org.gnome.shell.extensions.battery_usage_wattmeter');
 
     this._batLabelIndicator = new BatLabelIndicator(this._settings);
       getBatteryIndicator((proxy, icon) => {
         icon.add_child(this._batLabelIndicator);
     });
+
+    console.error("[watt] connect");
+
     this._settings.connect('changed::battery', () => {
         let newBatteryValue = this._settings.get_int("battery");
         BatteryInfo = getBatteryPath(newBatteryValue);
@@ -136,6 +164,8 @@ export default class WattmeterExtension extends Extension {
   }
 
   disable() {
+    console.error("[watt] disable");
+    
     if (this._batLabelIndicator) {
       this._batLabelIndicator._stop();
       this._batLabelIndicator.destroy();
